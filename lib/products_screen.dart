@@ -17,6 +17,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
   List<Product> _products = [];
   final Map<int, int> _cart = {};
 
+  Future<void>? _future;
+
   Future<Map> _loadProductsJson() async {
     try {
       final jsonString = await rootBundle.loadString('products.json');
@@ -53,7 +55,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProducts();
+    _future = _loadProducts();
   }
 
   int _getTotalProducts(int id) {
@@ -91,6 +93,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 20),
             child: InkWell(
+              key: const Key('checkout_screen_button'),
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -117,40 +120,46 @@ class _ProductsScreenState extends State<ProductsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ListView.builder(
-              itemCount: _products.length,
-              shrinkWrap: true,
-              itemBuilder: (context, index) {
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Text(
-                        "${_products[index].name} | ${_getTotalProducts(_products[index].id) > 0 ? "${_getTotalProducts(_products[index].id)}x" : ''}"),
-                    Text(_products[index].unitPrice.toString()),
-                    if (_getTotalProducts(_products[index].id) > 0)
-                      IconButton(
-                        onPressed: () => _removeFromCart(_products[index].id),
-                        icon: const Icon(Icons.remove),
-                      ),
-                    Text(
-                      _getTotalProducts(_products[index].id).toString(),
-                    ),
-                    IconButton(
-                      onPressed: () => _addToCart(_products[index].id),
-                      icon: const Icon(Icons.add),
-                    ),
-                  ],
-                );
+            FutureBuilder<void>(
+              future: _future,
+              builder: (_, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                } else {
+                  return ListView.builder(
+                    itemCount: _products.length,
+                    shrinkWrap: true,
+                    itemBuilder: (context, index) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        key: Key('product_${_products[index].id}'),
+                        children: [
+                          Text(
+                              "${_products[index].name} | ${_getTotalProducts(_products[index].id) > 0 ? "${_getTotalProducts(_products[index].id)}x" : ''}"),
+                          Text(_products[index].unitPrice.toString()),
+                          if (_getTotalProducts(_products[index].id) > 0)
+                            IconButton(
+                              onPressed: () =>
+                                  _removeFromCart(_products[index].id),
+                              icon: const Icon(Icons.remove),
+                            ),
+                          Text(
+                            _getTotalProducts(_products[index].id).toString(),
+                          ),
+                          IconButton(
+                            onPressed: () => _addToCart(_products[index].id),
+                            icon: const Icon(Icons.add),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }
               },
             ),
           ],
         ),
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: _incrementCounter,
-      //   tooltip: 'Increment',
-      //   child: const Icon(Icons.add),
-      // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
